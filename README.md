@@ -156,6 +156,49 @@ It is recommended to specify the remaining hyperparameters here as well.
 <!-- ![Architecture of the docker container](Docker_architecture.png) -->
 
 
+## Known issues
+
+### XGBoost
+Training XGBoost fails with maxreccursive error. To fix it, inisde the docker container run
+
+```bash
+conda activate gbdt
+```
+
+```bash
+pip uninstall numpy
+```
+And then
+```bash
+pip install "numpy<2"
+```
+
+If the issue persists, uninstall and install scikit-learn package.
+
+### GPU for XGBoost does not work
+
+Use of GPU is disabled permanently in XGBoost class:
+args.use_gpu = False
+
+
+### CF LF
+When mounting testall.sh from Windows to docker container, the testall.sh can be safed in CF LF. 
+You can open it with nodepad++ and change it in the right bottom corner to Unix(LF) from Windows(CFLF)
+
+### CatBoost
+Is not able to create directories.
+Run a create_dirs.py to create directories for models that are not able to do it on their own.
+
+### NAM
+To install it, you need run:
+```bash
+conda activate torch
+conda env config vars set SKLEARN_ALLOW_DEPRECATED_SKLEARN_PACKAGE_INSTALL=True
+conda deactivate
+conda activate torch
+pip install numpy torch pytorch-lightning tensorboard nam
+pip install --upgrade charset_normalizer requests
+```
 
 
 ## Citation  

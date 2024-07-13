@@ -124,13 +124,14 @@ def main(args):
 def main_once(args):
     print("Train model with given hyperparameters")
     X, y = load_data(args)
-
+    print(args)
+    
     model_name = str2model(args.model_name)
 
     parameters = args.parameters[args.dataset][args.model_name]
     model = model_name(parameters, args)
 
-    sc, time = cross_validation(model, X, y, args)
+    sc, time = cross_validation(model, X, y, args, save_model=True)
     print(sc.get_results())
     print(time)
 

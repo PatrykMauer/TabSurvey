@@ -1,23 +1,85 @@
+"""
+Module: Attribution and Benchmarking for Machine Learning Models
+
+This module provides tools to train machine learning models, compute feature attributions, and benchmark their importance.
+The key functionalities include training models, computing attributions, performing feature removal benchmarks,
+and comparing computed attributions to baseline methods such as SHAP values.
+
+## Main Components:
+
+1. **Model Training and Validation**:
+    - `train_model`: Trains a machine learning model using specified parameters and returns the trained model.
+    - `val_model`: Validates the trained model on a test set and returns the accuracy.
+
+2. **Feature Attribution Computation**:
+    - Feature attributions are numerical values that indicate the importance or contribution of each feature to the model's predictions.
+    - This module can compute attributions for various models and strategies.
+
+3. **Global Feature Removal Benchmark**:
+    - `global_removal_benchmark`: Performs a benchmark by successively removing features based on their attributions and retraining the model.
+    - This process helps in understanding the robustness and reliance of the model on specific features.
+
+4. **Spearman Correlation of Attributions**:
+    - `compute_spearman_corr`: Computes the Spearman rank correlation between two sets of attributions.
+    - Useful for comparing how different methods rank the importance of features.
+
+5. **Comparing Attributions to SHAP Values**:
+    - `compare_to_shap`: Compares model-generated attributions with SHAP values, which are a standard for explaining individual predictions.
+    - This helps validate the model's attribution mechanism against a baseline.
+
+6. **Visualization and Saving of Attributions**:
+    - `save_attributions_image`: Saves the computed attributions as a heatmap image for visualization.
+    - Helps in visually interpreting the importance of features.
+
+7. **Main Execution Flow**:
+    - The `main` function orchestrates the loading of data, model training, computation of attributions, and optional benchmarking and comparisons.
+    - It is executed when the script is run as a standalone module.
+
+## Usage:
+
+1. Configure and pass the necessary arguments for the model and attributions using a command-line parser.
+2. The script supports additional functionalities such as running global benchmarks and comparing attributions to SHAP values, based on the provided arguments.
+3. Output results, including computed attributions and benchmarks, are saved in JSON format for further analysis.
+
+## Example Command:
+
+```shell
+python script.py --model_name "YourModel" --dataset "YourDataset" --strategy "YourStrategy" --globalbenchmark --compareshap
+"""
+
+# pylint: disable=import-error
+# pylint: disable=unused-import
+# pylint: disable=too-many-arguments
+# pylint: disable=too-many-locals
+# pylint: disable=invalid-name
+# pylint: disable=line-too-long
+# pylint: disable=trailing-whitespace
+
+
 # Run a model to compute attributions and compare them to a baseline.
-import numpy as np
-import matplotlib.pyplot as plt
-from utils.parser import get_attribution_parser
-from models import str2model
-from utils.load_data import load_data
-from utils.io_utils import save_results_to_json_file
-from sklearn.model_selection import train_test_split
-from utils.baseline_attributions import get_shap_attributions
-from models.basemodel import BaseModel
 import typing as tp
 import types
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+from sklearn.model_selection import train_test_split
+
+from utils.load_data import load_data
+from utils.io_utils import save_results_to_json_file
+from utils.baseline_attributions import get_shap_attributions
+from utils.parser import get_attribution_parser
+
+from models.basemodel import BaseModel
+from models import str2model
 
 
 def train_model(args, model: BaseModel, X_train: np.ndarray, X_val: np.ndarray,
                 y_train: np.ndarray, y_val: np.ndarray) -> BaseModel:
-    """ Train model using parameters args. 
+    """ Train model using parameters args.
         X_train, y_train: Training data and labels
-        X_val and y_val: Test data and 
-        :return: Trained model.
+        X_val and y_val: Test data and
+        : return: Trained model.
     """
     loss_history, val_loss_history = model.fit(X_train, y_train, X_val, y_val)
     val_model(model, X_val, y_val)
@@ -29,7 +91,7 @@ def global_removal_benchmark(args, X_train: np.ndarray, X_val: np.ndarray, y_tra
     """ Perform a feature removal benchmark for the attributions. 
         The features that are attributed the highest overall attribution scores are successivly removed from the 
         dataset. The model is then retrained.
-        
+
         :param features_importances: A vector of D (number of features in X) values that contain the importance score for each feature.
             The features will be ordered by the absolute value of the passed importance.
         :param X_val: (N, D) train data (N samples, D features)
@@ -40,16 +102,19 @@ def global_removal_benchmark(args, X_train: np.ndarray, X_val: np.ndarray, y_tra
         :return: array with the obtained accuracies.
     """
     if X_train.shape[1] != len(feature_importances):
-        raise ValueError("Number of Features in Trainset must be equal to number of importances passed.")
+        raise ValueError(
+            "Number of Features in Trainset must be equal to number of importances passed.")
 
-    ranking = np.argsort((1 if order_morf else -1) * np.abs(feature_importances))
+    ranking = np.argsort((1 if order_morf else -1)
+                         * np.abs(feature_importances))
     results = np.zeros(len(feature_importances))
     old_cat_index = args.cat_idx
     old_cat_dims = args.cat_dims
     for i in range(len(feature_importances)):
         remaining_features = len(feature_importances) - i
         use_idx = ranking[:remaining_features].copy()
-        np.random.shuffle(use_idx)  # make sure the neighborhood relation is not important.
+        # make sure the neighborhood relation is not important.
+        np.random.shuffle(use_idx)
 
         print(f"Using {len(use_idx)} features ...")
         # Retrain the model and report acc.
@@ -75,7 +140,8 @@ def global_removal_benchmark(args, X_train: np.ndarray, X_val: np.ndarray, y_tra
 
         model_name = str2model(args.model_name)
         model = model_name(arguments.parameters[args.model_name], args)
-        model = train_model(args, model, X_train_bench, X_val_bench, y_train, y_val)
+        model = train_model(args, model, X_train_bench,
+                            X_val_bench, y_train, y_val)
         acc_obtained = val_model(model, X_val_bench, y_val)
         results[i] = acc_obtained
 
@@ -84,7 +150,8 @@ def global_removal_benchmark(args, X_train: np.ndarray, X_val: np.ndarray, y_tra
         res_dict["order"] = "MoRF" if order_morf else "LeRF"
         res_dict["accuracies"] = results.tolist()
         res_dict["attributions"] = feature_importances.tolist()
-    save_results_to_json_file(args, res_dict, f"global_benchmark{args.strategy}", append=True)
+    save_results_to_json_file(
+        args, res_dict, f"global_benchmark{args.strategy}", append=True)
     # reset args to their old values.
     args.cat_idx = old_cat_index
     args.cat_dims = old_cat_dims
@@ -104,14 +171,15 @@ def compute_spearman_corr(attr1: np.ndarray, attr2: np.ndarray) -> np.ndarray:
     ranks1 = np.argsort(np.argsort(attr1, axis=0), axis=0)
     ranks2 = np.argsort(np.argsort(attr2, axis=0), axis=0)
 
-    cov = np.mean(ranks1 * ranks2, axis=0) - np.mean(ranks1, axis=0) * np.mean(ranks2, axis=0)  # E[XY]-E[Y]E[X]
+    cov = np.mean(ranks1 * ranks2, axis=0) - np.mean(ranks1,
+                                                     axis=0) * np.mean(ranks2, axis=0)  # E[XY]-E[Y]E[X]
     corr = cov / (np.std(ranks1, axis=0) * np.std(ranks2, axis=0))
     return corr
 
 
 def compare_to_shap(args, attrs, model, X_val, sample_size=100):
     """ 
-        Compare feature attributions by the model to shap values on a random set of validation points.
+        Compare feature attributions by the model to shap values on a    random set of validation points.
         Compute correlation and save raw output to JSON file.
         :param attrs: (N, D) model feature attributions
         :param model: The model to use.
@@ -134,7 +202,8 @@ def compare_to_shap(args, attrs, model, X_val, sample_size=100):
     rank_corrs = compute_spearman_corr(np.abs(attrs), np.abs(shap_attrs))
     res_dict["rank_corr_mean"] = np.mean(rank_corrs)
     res_dict["rank_corr_std"] = np.std(rank_corrs)
-    save_results_to_json_file(args, res_dict, f"shap_compare{args.strategy}", append=True)
+    save_results_to_json_file(
+        args, res_dict, f"shap_compare{args.strategy}", append=True)
 
 
 def val_model(model: BaseModel, X_val: np.ndarray, y_val: np.ndarray) -> float:
@@ -152,8 +221,9 @@ def val_model(model: BaseModel, X_val: np.ndarray, y_val: np.ndarray) -> float:
     return acc
 
 
-def save_attributions_image(attrs: np.ndarray, namelist: tp.Optional[tp.List[str]] = None,
-                            file_name: str = ""):
+def save_attributions_image(
+        attrs: np.ndarray, namelist: tp.Optional[tp.List[str]] = None,
+        file_name: str = ""):
     """ Save attributions in a plot. 
         :param attrs: (N, D) attributions (N samples, D features)
         :param namelist: List of length D with column names
@@ -171,12 +241,14 @@ def save_attributions_image(attrs: np.ndarray, namelist: tp.Optional[tp.List[str
 
 
 def main(args):
-    if args.model_name == "TabTransformer":  # Use discretized version of adult dataset for TabNet attributions.
+    # Use discretized version of adult dataset for TabNet attributions.
+    if args.model_name == "TabTransformer":
         args.scale = False
 
     # Load dataset (currently only tested for the Adult data set)
     X, y = load_data(args)
-    X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.10, random_state=args.seed)
+    X_train, X_val, y_train, y_val = train_test_split(
+        X, y, test_size=0.10, random_state=args.seed)
 
     # Create the model
     model_name = str2model(args.model_name)
@@ -188,9 +260,10 @@ def main(args):
 
     # Save the first 20 attributions to file.
     if args.dataset == "Adult" or args.dataset == "AdultCat":
-        feature_names = ['age', 'workclass', 'fnlwgt', 'education', 'education_num', 'marital-status', 'occupation',
-                         'relationship', 'race', 'sex', 'capital-gain', 'capital-loss', 'hours-per-week',
-                         'native-country']
+        feature_names = [
+            'age', 'workclass', 'fnlwgt', 'education', 'education_num',
+            'marital-status', 'occupation', 'relationship', 'race', 'sex',
+            'capital-gain', 'capital-loss', 'hours-per-week', 'native-country']
     else:
         feature_names = None
     res_dict = {}
@@ -198,15 +271,18 @@ def main(args):
     res_dict["strategy"] = str(args.strategy)
     res_dict["dataset"] = args.dataset
     res_dict["attributions"] = attrs.tolist()
-    save_results_to_json_file(args, res_dict, f"attributions{args.strategy}", append=True)
+    save_results_to_json_file(
+        args, res_dict, f"attributions{args.strategy}", append=True)
     save_attributions_image(attrs[:20, :], feature_names, args.model_name)
 
     # Run global attribution benchmark if flag is passed.
     if args.globalbenchmark:
         for order in [True, False]:
             for run in range(args.numruns):
-                global_removal_benchmark(args, X_train, X_val, y_train, y_val, attrs.mean(axis=0).flatten(),
-                                         order_morf=order)
+                global_removal_benchmark(
+                    args, X_train, X_val, y_train, y_val, attrs.mean(
+                        axis=0).flatten(),
+                    order_morf=order)
 
     # Compute Shaples values and compare to model intrinsic attribution if flag is passed.
     if args.compareshap:

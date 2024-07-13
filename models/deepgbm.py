@@ -1,9 +1,9 @@
 from models.basemodel_torch import BaseModelTorch
-
 from models.deepgbm_lib.main import train, predict
 from models.deepgbm_lib.preprocess.preprocessing_cat import CatEncoder
 from models.deepgbm_lib.preprocess.preprocessing_num import NumEncoder
 import models.deepgbm_lib.config as deepgbm_config
+import sys
 
 '''
     DeepGBM: A Deep Learning Framework Distilled by GBDT for Online Prediction Tasks
@@ -12,17 +12,15 @@ import models.deepgbm_lib.config as deepgbm_config
     Code adapted from: https://github.com/motefly/DeepGBM
 '''
 
-
 class DeepGBM(BaseModelTorch):
 
     def __init__(self, params, args):
         super().__init__(params, args)
 
         if args.objective == "classification":
-            print("DeepGBM not implemented for classification!")
-            import sys
-            sys.exit()
+            raise NotImplementedError("DeepGBM not implemented for classification!")
 
+        # Determine categorical and numerical columns
         if args.cat_idx:
             cat_col = args.cat_idx
             num_col = list(set(range(args.num_features)) - set(args.cat_idx))
@@ -33,18 +31,21 @@ class DeepGBM(BaseModelTorch):
         self.ce = CatEncoder(cat_col, num_col)
         self.ne = NumEncoder(cat_col, num_col)
 
-        deepgbm_config.update({'task': args.objective,
-                               "epochs": args.epochs,
-                               "early-stopping": args.early_stopping_rounds,
-                               "batch_size": args.batch_size,
-                               "test_batch_size": args.val_batch_size,
-                               "device": self.device})
+        # Update deepgbm_config with parameters and arguments
+        deepgbm_config.update({
+            'task': args.objective,
+            "epochs": args.epochs,
+            "early-stopping": args.early_stopping_rounds,
+            "batch_size": args.batch_size,
+            "test_batch_size": args.val_batch_size,
+            "device": self.device
+        })
         deepgbm_config.update(**params)
 
         print(deepgbm_config)
 
     def fit(self, X, y, X_val=None, y_val=None):
-        # preprocess
+        # Preprocess the data
         train_x_cat, feature_sizes = self.ce.fit_transform(X.copy())
         test_x_cat = self.ce.transform(X_val.copy())
 
@@ -54,9 +55,11 @@ class DeepGBM(BaseModelTorch):
         train_num = (train_x, y.reshape(-1, self.args.num_classes))
         test_num = (test_x, y_val.reshape(-1, self.args.num_classes))
 
-        # train
-        self.model, _, loss_history, val_loss_history = train(train_num, test_num, train_x_cat.astype('int32'),
-                                                              test_x_cat.astype('int32'), feature_sizes)
+        # Train the model
+        self.model, _, loss_history, val_loss_history = train(
+            train_num, test_num, train_x_cat.astype('int32'),
+            test_x_cat.astype('int32'), feature_sizes
+        )
 
         return loss_history, val_loss_history
 

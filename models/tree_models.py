@@ -23,6 +23,9 @@ class XGBoost(BaseModel):
 
         self.params["verbosity"] = 1
 
+        #gpu for XGBoost does not work in my docker, remove if want to try
+        args.use_gpu = False
+
         if args.use_gpu:
             self.params["tree_method"] = "gpu_hist"
             self.params["gpu_id"] = args.gpu_ids[0]
@@ -42,9 +45,11 @@ class XGBoost(BaseModel):
         train = xgb.DMatrix(X, label=y)
         val = xgb.DMatrix(X_val, label=y_val)
         eval_list = [(val, "eval")]
-        self.model = xgb.train(self.params, train, num_boost_round=self.args.epochs, evals=eval_list,
-                               early_stopping_rounds=self.args.early_stopping_rounds,
-                               verbose_eval=self.args.logging_period)
+        self.model = xgb.train(
+            self.params, train, num_boost_round=self.args.epochs,
+            evals=eval_list,
+            early_stopping_rounds=self.args.early_stopping_rounds,
+            verbose_eval=self.args.logging_period)
 
         return [], []
 
@@ -57,7 +62,8 @@ class XGBoost(BaseModel):
 
         if self.args.objective == "binary":
             probabilities = probabilities.reshape(-1, 1)
-            probabilities = np.concatenate((1 - probabilities, probabilities), 1)
+            probabilities = np.concatenate(
+                (1 - probabilities, probabilities), 1)
 
         self.prediction_probabilities = probabilities
         return self.prediction_probabilities
@@ -107,7 +113,8 @@ class CatBoost(BaseModel):
             X = X.astype('object')
             X_val = X_val.astype('object')
             X[:, self.args.cat_idx] = X[:, self.args.cat_idx].astype('int')
-            X_val[:, self.args.cat_idx] = X_val[:, self.args.cat_idx].astype('int')
+            X_val[:, self.args.cat_idx] = X_val[:,
+                                                self.args.cat_idx].astype('int')
 
         self.model.fit(X, y, eval_set=(X_val, y_val))
 
@@ -122,11 +129,12 @@ class CatBoost(BaseModel):
 
     @classmethod
     def define_trial_parameters(cls, trial, args):
-        params = {
-            "learning_rate": trial.suggest_float("learning_rate", 0.01, 0.3, log=True),
-            "max_depth": trial.suggest_int("max_depth", 2, 12, log=True),
-            "l2_leaf_reg": trial.suggest_float("l2_leaf_reg", 0.5, 30, log=True),
-        }
+        params = {"learning_rate": trial.suggest_float(
+            "learning_rate", 0.01, 0.3, log=True),
+            "max_depth": trial.suggest_int(
+            "max_depth", 2, 12, log=True),
+            "l2_leaf_reg": trial.suggest_float(
+            "l2_leaf_reg", 0.5, 30, log=True), }
         return params
 
 
@@ -155,11 +163,15 @@ class LightGBM(BaseModel):
 
     def fit(self, X, y, X_val=None, y_val=None):
         train = lgb.Dataset(X, label=y, categorical_feature=self.args.cat_idx)
-        val = lgb.Dataset(X_val, label=y_val, categorical_feature=self.args.cat_idx)
-        self.model = lgb.train(self.params, train, num_boost_round=self.args.epochs, valid_sets=[val],
-                               valid_names=["eval"], callbacks=[lgb.early_stopping(self.args.early_stopping_rounds),
-                                                                lgb.log_evaluation(self.args.logging_period)],
-                               categorical_feature=self.args.cat_idx)
+        val = lgb.Dataset(X_val, label=y_val,
+                          categorical_feature=self.args.cat_idx)
+        self.model = lgb.train(
+            self.params, train, num_boost_round=self.args.epochs,
+            valid_sets=[val],
+            valid_names=["eval"],
+            callbacks=[lgb.early_stopping(self.args.early_stopping_rounds),
+                       lgb.log_evaluation(self.args.logging_period)],
+            categorical_feature=self.args.cat_idx)
 
         return [], []
 
@@ -168,7 +180,8 @@ class LightGBM(BaseModel):
 
         if self.args.objective == "binary":
             probabilities = probabilities.reshape(-1, 1)
-            probabilities = np.concatenate((1 - probabilities, probabilities), 1)
+            probabilities = np.concatenate(
+                (1 - probabilities, probabilities), 1)
 
         self.prediction_probabilities = probabilities
         return self.prediction_probabilities
@@ -176,9 +189,12 @@ class LightGBM(BaseModel):
     @classmethod
     def define_trial_parameters(cls, trial, args):
         params = {
-            "num_leaves": trial.suggest_int("num_leaves", 2, 4096, log=True),
-            "lambda_l1": trial.suggest_float("lambda_l1", 1e-8, 10.0, log=True),
-            "lambda_l2": trial.suggest_float("lambda_l2", 1e-8, 10.0, log=True),
-            "learning_rate": trial.suggest_float("learning_rate", 0.01, 0.3, log=True)
-        }
+            "num_leaves": trial.suggest_int(
+                "num_leaves", 2, 4096, log=True),
+            "lambda_l1": trial.suggest_float(
+                "lambda_l1", 1e-8, 10.0, log=True),
+            "lambda_l2": trial.suggest_float(
+                "lambda_l2", 1e-8, 10.0, log=True),
+            "learning_rate": trial.suggest_float(
+                "learning_rate", 0.01, 0.3, log=True)}
         return params

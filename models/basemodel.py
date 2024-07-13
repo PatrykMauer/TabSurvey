@@ -54,7 +54,8 @@ class BaseModel:
 
         # Create a placeholder for the predictions on the test dataset
         self.predictions = None
-        self.prediction_probabilities = None  # Only used by binary / multi-class-classification
+        # Only used by binary / multi-class-classification
+        self.prediction_probabilities = None
 
     def fit(self, X: np.ndarray, y: np.ndarray, X_val: tp.Union[None, np.ndarray] = None,
             y_val: tp.Union[None, np.ndarray] = None) -> tp.Tuple[list, list]:
@@ -109,11 +110,12 @@ class BaseModel:
 
         # If binary task returns only probability for the true class, adapt it to return (N x 2)
         if self.prediction_probabilities.shape[1] == 1:
-            self.prediction_probabilities = np.concatenate((1 - self.prediction_probabilities,
-                                                            self.prediction_probabilities), 1)
+            self.prediction_probabilities = np.concatenate(
+                (1 - self.prediction_probabilities, self.prediction_probabilities), 1)
         return self.prediction_probabilities
 
-    def save_model_and_predictions(self, y_true: np.ndarray, filename_extension=""):
+    def save_model_and_predictions(
+            self, y_true: np.ndarray, filename_extension=""):
         """Saves the current state of the model and the predictions and true labels of the test dataset.
 
         :param y_true: true labels of the test data
@@ -145,7 +147,8 @@ class BaseModel:
         :return: Hyperparameter configuration
         """
 
-        raise NotImplementedError("This method has to be implemented by the sub class")
+        raise NotImplementedError(
+            "This method has to be implemented by the sub class")
 
     def save_model(self, filename_extension=""):
         """Saves the current state of the model.
@@ -166,17 +169,25 @@ class BaseModel:
         """
         if self.args.objective == "regression":
             # Save array where [:,0] is the truth and [:,1] the prediction
-            y = np.concatenate((y_true.reshape(-1, 1), self.predictions.reshape(-1, 1)), axis=1)
+            y = np.concatenate(
+                (y_true.reshape(-1, 1),
+                 self.predictions.reshape(-1, 1)),
+                axis=1)
         else:
             # Save array where [:,0] is the truth and [:,1:] are the prediction probabilities
-            y = np.concatenate((y_true.reshape(-1, 1), self.prediction_probabilities), axis=1)
+            y = np.concatenate(
+                (y_true.reshape(-1, 1),
+                 self.prediction_probabilities),
+                axis=1)
 
         save_predictions_to_file(y, self.args, filename_extension)
 
     def get_model_size(self):
-        raise NotImplementedError("Calculation of model size has not been implemented for this model.")
+        raise NotImplementedError(
+            "Calculation of model size has not been implemented for this model.")
 
-    def attribute(cls, X: np.ndarray, y: np.ndarray, strategy: str = "") -> np.ndarray:
+    def attribute(
+            cls, X: np.ndarray, y: np.ndarray, strategy: str = "") -> np.ndarray:
         """Get feature attributions for inherently interpretable models. This function is only implemented for
         interpretable models.
 
@@ -185,8 +196,9 @@ class BaseModel:
         usage of these labels depends on the specific model)
 
         :strategy: if there are different strategies that can be used to compute the attributions they can be passed
-        here. Passing an empty sting should always result in the default strategy.
+        here. Passing an empty string should always result in the default strategy.
 
         :return The (non-normalized) importance attributions for each feature in each data point. (Shape N x D)
         """
-        raise NotImplementedError(f"This method is not implemented for class {type(cls)}.")
+        raise NotImplementedError(
+            f"This method is not implemented for class {type(cls)}.")

@@ -39,8 +39,8 @@ class NAM(BaseModelTorch):
         print(self.config)
 
     def fit(self, X, y, X_val=None, y_val=None):
-        X = np.array(X, dtype=np.float)
-        X_val = np.array(X_val, dtype=np.float)
+        X = np.array(X, dtype=np.float64)
+        X_val = np.array(X_val, dtype=np.float64)
 
         dataset = torch.utils.data.TensorDataset(torch.tensor(X).float(), torch.tensor(y).float())
         trainloader = torch.utils.data.DataLoader(dataset, batch_size=self.args.batch_size, shuffle=True)
@@ -63,26 +63,29 @@ class NAM(BaseModelTorch):
         tb_logger = TensorBoardLogger(save_dir=self.config.logdir, name=f'{self.model.name}', version=f'0')
 
         checkpoint_callback = ModelCheckpoint(filename=tb_logger.log_dir + "/{epoch:02d}-{val_loss:.4f}",
-                                              monitor='val_loss',
-                                              save_top_k=self.config.save_top_k,
-                                              mode='min')
+                                            monitor='val_loss',
+                                            save_top_k=self.config.save_top_k,
+                                            mode='min')
 
         metrics_callback = MetricsCallback()
 
         litmodel = LitNAM(self.config, self.model)
 
-        gpus = 1 if self.args.use_gpu else 0
-        trainer = pl.Trainer(logger=tb_logger,  max_epochs=self.config.num_epochs,
-                             enable_checkpointing=checkpoint_callback,  # checkpoint_callback
-                             callbacks=[EarlyStopping(monitor='val_loss', patience=self.args.early_stopping_rounds),
+        accelerator = 'gpu' if self.args.use_gpu else 'cpu'
+        devices = self.args.gpu_ids if self.args.use_gpu else 1
+
+        trainer = pl.Trainer(logger=tb_logger, max_epochs=self.config.num_epochs,
+                            enable_checkpointing=checkpoint_callback,  # checkpoint_callback
+                            callbacks=[EarlyStopping(monitor='val_loss', patience=self.args.early_stopping_rounds),
                                         metrics_callback],
-                             gpus=gpus)
+                            accelerator=accelerator, devices=devices)
         trainer.fit(litmodel, train_dataloaders=trainloader, val_dataloaders=valloader)
 
         return metrics_callback.train_loss, metrics_callback.val_loss
 
+
     def predict_helper(self, X):
-        X = np.array(X, dtype=np.float)
+        X = np.array(X, dtype=np.float64)
         test_dataset = torch.utils.data.TensorDataset(torch.tensor(X).float())
         testloader = torch.utils.data.DataLoader(test_dataset, batch_size=self.args.val_batch_size, shuffle=False)
 

@@ -5,6 +5,16 @@ parameters: {
         KNN: {
             n_neighbors: 25
         },
+        SVM: {
+            'kernel': 'rbf',         # Kernel type
+            'C': 1.0,                # Regularization parameter
+            'gamma': 'scale',        # Kernel coefficient
+            'degree': 3,             # Degree for polynomial kernel
+            'class_weight': None,    # Class weight
+            'tol': 1e-3,             # Tolerance for stopping criterion
+            'max_iter': -1,          # Maximum iterations
+            'verbose': False         # Verbose output
+        },
         DecisionTree: {
             max_depth: 8
         },

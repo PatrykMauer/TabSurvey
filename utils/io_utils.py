@@ -49,7 +49,7 @@ def save_results_to_json_file(args, jsondict, resultsname, append=True):
 
 def save_results_to_file(args, results, train_time=None, test_time=None, best_params=None):
     filename = get_output_path(args, filename="results", file_type="txt")
-
+    print(f"Results saved to {filename}")
     with open(filename, "a") as text_file:
         text_file.write(str(datetime.datetime.now()) + "\n")
         text_file.write(args.model_name + " - " + args.dataset + "\n\n")
