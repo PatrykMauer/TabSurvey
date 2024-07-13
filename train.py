@@ -7,7 +7,7 @@ from models import str2model
 from utils.load_data import load_data
 from utils.scorer import get_scorer
 from utils.timer import Timer
-from utils.io_utils import save_results_to_file, save_hyperparameters_to_file, save_loss_to_file
+from utils.io_utils import save_results_to_file, save_hyperparameters_to_file, save_loss_to_file, save_results_for_plotting
 from utils.parser import get_parser, get_given_parameters_parser
 
 from sklearn.model_selection import KFold, StratifiedKFold  # , train_test_split
@@ -68,6 +68,10 @@ def cross_validation(model, X, y, args, save_model=False):
         save_results_to_file(args, sc.get_results(),
                              train_timer.get_average_time(), test_timer.get_average_time(),
                              model.params)
+
+        save_results_for_plotting(args, sc.get_results(),
+                              train_timer.get_average_time(), test_timer.get_average_time(),
+                              model.params)
 
     # print("Finished cross validation")
     return sc, (train_timer.get_average_time(), test_timer.get_average_time())

@@ -117,3 +117,37 @@ def get_predictions_from_file(args):
         content.append(np.load(dir_path + "/" + file))
 
     return content
+
+def save_results_for_plotting(args, results, train_time=None, test_time=None, best_params=None):
+    """ Save the results in a structured format for easy plotting later. """
+    # Saving results in the usual text format
+    save_results_to_file(args, results, train_time, test_time, best_params)
+    
+    # List of filenames to save results to
+    filenames = ["../../all_results", f"results", f"../../{args.dataset}_results"]
+
+    for filename in filenames:
+        # Generate the full path for the filename
+        filepath = get_output_path(args, filename=filename, file_type="json")
+
+        # Prepare data for saving
+        data = {
+            "method": args.model_name,
+            "dataset": args.dataset,
+            "results": results,
+            "train_time": train_time,
+            "inference_time": test_time,
+            "best_params": best_params
+        }
+
+        # Load existing data if the file exists, otherwise start with an empty list
+        if os.path.exists(filepath):
+            with open(filepath, "r") as f:
+                all_data = json.load(f)
+            all_data.append(data)
+        else:
+            all_data = [data]
+
+        # Save the updated data back to the file
+        with open(filepath, "w") as f:
+            json.dump(all_data, f, indent=4)
