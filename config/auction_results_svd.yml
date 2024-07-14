@@ -1,5 +1,5 @@
 # General parameters
-dataset: CaliforniaHousing
+dataset: AuctionResultsSVD
 model_name: DeepGBM # LinearModel, KNN, SVM, DecisionTree, RandomForest, MLP
                            # XGBoost, CatBoost, LightGBM,
                            # TabNet, VIME, TabTransformer, ModelTree, NODE, DeepGBM, RLN, DNFNet,
@@ -32,5 +32,5 @@ epochs: 1000
 logging_period: 100
 
 # About the data
-num_features: 8
+num_features: 7
 num_classes: 1 # always one for regression!

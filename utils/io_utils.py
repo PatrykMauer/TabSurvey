@@ -129,6 +129,7 @@ def save_results_for_plotting(args, results, train_time=None, test_time=None, be
     for filename in filenames:
         # Generate the full path for the filename
         filepath = get_output_path(args, filename=filename, file_type="json")
+        print(f"Processing file: {filepath}")  # Debugging information
 
         # Prepare data for saving
         data = {
@@ -143,10 +144,20 @@ def save_results_for_plotting(args, results, train_time=None, test_time=None, be
         # Load existing data if the file exists, otherwise start with an empty list
         if os.path.exists(filepath):
             with open(filepath, "r") as f:
-                all_data = json.load(f)
-            all_data.append(data)
+                file_content = f.read().strip()
+                if file_content:  # Check if file is not empty
+                    try:
+                        all_data = json.loads(file_content)
+                    except json.JSONDecodeError as e:
+                        print(f"JSONDecodeError: {e} in file: {filepath}")
+                        all_data = []
+                else:
+                    all_data = []
         else:
             all_data = [data]
+
+        # Append new data to the list
+        all_data.append(data)
 
         # Save the updated data back to the file
         with open(filepath, "w") as f:

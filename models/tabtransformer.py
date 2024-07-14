@@ -20,12 +20,13 @@ class TabTransformer(BaseModelTorch):
 
         if args.cat_idx:
             self.num_idx = list(set(range(args.num_features)) - set(args.cat_idx))
-            num_continuous = args.num_features - len(args.cat_idx)
+            num_continuous = len(self.num_idx)  # Correctly calculate the number of continuous features
             categories_unique = args.cat_dims
         else:
             self.num_idx = list(range(args.num_features))
             num_continuous = args.num_features
-            categories_unique = ()
+            categories_unique = []
+
         print(categories_unique)
         print("On Device:", self.device)
 
@@ -36,7 +37,7 @@ class TabTransformer(BaseModelTorch):
         print("Using dim %d and batch size %d" % (dim, self.batch_size))
 
         self.model = TabTransformerModel(
-            categories=categories_unique,  # tuple (or list?) containing the number of unique values in each category
+            categories=categories_unique,  # list containing the number of unique values in each category
             num_continuous=num_continuous,  # number of continuous values
             dim_out=args.num_classes,
             mlp_act=nn.ReLU(),  # activation for final mlp, defaults to relu, but could be anything else (selu etc)
@@ -46,9 +47,10 @@ class TabTransformer(BaseModelTorch):
             attn_dropout=self.params["dropout"],
             ff_dropout=self.params["dropout"],
             mlp_hidden_mults=(4, 2)
-        )  # .to(self.device)
+        )
 
         self.to_device()
+
 
     def fit(self, X, y, X_val=None, y_val=None):
         learning_rate = 10 ** self.params["learning_rate"]

@@ -15,8 +15,11 @@ def process_yaml_file(file_path):
         if 'dataset' in data:
             dataset_name = data['dataset']
             dataset_dir = os.path.join(output_dir, dataset_name)
-            os.makedirs(dataset_dir, exist_ok=True)
-            print(f"Created directory: {dataset_dir}")
+            if not os.path.exists(dataset_dir):
+                os.makedirs(dataset_dir)
+                print(f"Created directory: {dataset_dir}")
+            else:
+                print(f"Directory already exists: {dataset_dir}")
 
 # Iterate over YAML files in the config directory
 for filename in os.listdir(config_dir):

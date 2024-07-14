@@ -19,6 +19,30 @@ def load_data(args):
     if args.dataset == "CaliforniaHousing":  # Regression dataset
         X, y = sklearn.datasets.fetch_california_housing(return_X_y=True)
 
+    elif args.dataset == "AuctionResultsNoImg":  
+        path = "datasets/auction_results_no_img.csv"  # Missing values already filtered
+        df = pd.read_csv(path)
+        X = df.iloc[:, :-1].to_numpy()
+        y = df.iloc[:, -1].to_numpy()
+
+    elif args.dataset == "AuctionResultsColor":  #
+        path = "datasets/auction_results_color.csv"  # Missing values already filtered
+        df = pd.read_csv(path)
+        X = df.iloc[:, :-1].to_numpy()
+        y = df.iloc[:, -1].to_numpy()
+    
+    elif args.dataset == "AuctionResultsSVD":  #
+        path = "datasets/auction_results_svd.csv"  # Missing values already filtered
+        df = pd.read_csv(path)
+        X = df.iloc[:, :-1].to_numpy()
+        y = df.iloc[:, -1].to_numpy()
+
+    elif args.dataset == "AuctionResultsColorSVD":  #
+        path = "datasets/auction_results_color_svd.csv"  # Missing values already filtered
+        df = pd.read_csv(path)
+        X = df.iloc[:, :-1].to_numpy()
+        y = df.iloc[:, -1].to_numpy()
+
     elif args.dataset == "Covertype":  # Multi-class classification dataset
         X, y = sklearn.datasets.fetch_covtype(return_X_y=True)
         # X, y = X[:10000, :], y[:10000]  # only take 10000 samples from dataset
